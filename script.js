@@ -614,3 +614,235 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Show loading state
             const deleteBtn = document.querySelector(`.delete-post[data-id="${postId}
+            /////////////////////////////////////////////////////////////////////////////
+                        if (deleteBtn) {
+                deleteBtn.disabled = true;
+                deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+            }
+
+            // Simulate API call delay
+            await new Promise(resolve => setTimeout(resolve, 600));
+
+            this.state.posts = this.state.posts.filter(post => post.id !== postId);
+            this.saveToLocalStorage();
+            this.renderPosts();
+            
+            AdminAuth.showToast('Post deleted successfully!', 'success');
+        },
+
+        // Update content preview
+        updateContentPreview() {
+            if (!this.elements.contentPreview || !this.elements.postContent) return;
+            
+            const markdownContent = this.elements.postContent.value;
+            this.elements.contentPreview.innerHTML = this.markdownToHtml(markdownContent);
+        },
+
+        // Save posts to localStorage
+        saveToLocalStorage() {
+            localStorage.setItem('portfolioPosts', JSON.stringify(this.state.posts));
+        },
+
+        // Simple markdown to HTML conversion
+        markdownToHtml(text) {
+            if (!text) return '';
+            
+            return text
+                .replace(/^# (.*$)/gm, '<h3>$1</h3>')
+                .replace(/^## (.*$)/gm, '<h4>$1</h4>')
+                .replace(/^### (.*$)/gm, '<h5>$1</h5>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/!\[(.*?)\]\((.*?)\)/g, '<img src="$2" alt="$1" style="max-width:100%;">')
+                .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>')
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/\n/g, '<br>')
+                .replace(/<p>(.*?)<\/p>/g, '<p>$1</p>');
+        }
+    };
+
+    // ======================
+    // Contact Form Handling
+    // ======================
+    const ContactForm = {
+        elements: {
+            form: document.getElementById('contactForm'),
+            submitBtn: document.getElementById('submitBtn'),
+            btnText: document.getElementById('btnText'),
+            btnLoader: document.getElementById('btnLoader'),
+            formStatus: document.getElementById('formStatus')
+        },
+
+        init() {
+            if (this.elements.form) {
+                this.setupEventListeners();
+            }
+        },
+
+        setupEventListeners() {
+            this.elements.form.addEventListener('submit', (e) => this.handleSubmit(e));
+        },
+
+        async handleSubmit(e) {
+            e.preventDefault();
+            
+            // Validate form
+            const name = this.elements.form.elements['name'].value.trim();
+            const email = this.elements.form.elements['email'].value.trim();
+            const message = this.elements.form.elements['message'].value.trim();
+            
+            if (!name || !email || !message) {
+                this.showStatus('Please fill all required fields', 'error');
+                return;
+            }
+            
+            if (!this.validateEmail(email)) {
+                this.showStatus('Please enter a valid email address', 'error');
+                return;
+            }
+            
+            // Show loading state
+            this.setLoadingState(true);
+            
+            try {
+                // Using FormSubmit.co service
+                const response = await fetch('https://formsubmit.co/ajax/akashkumargupta1998@gmail.com', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        email: email,
+                        message: message,
+                        _subject: 'New message from your portfolio website'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    this.showStatus('Message sent successfully!', 'success');
+                    this.elements.form.reset();
+                } else {
+                    throw new Error(result.message || 'Failed to send message');
+                }
+            } catch (error) {
+                this.showStatus(error.message || 'An error occurred while sending your message', 'error');
+                console.error('Contact form error:', error);
+            } finally {
+                this.setLoadingState(false);
+            }
+        },
+
+        validateEmail(email) {
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return re.test(email);
+        },
+
+        setLoadingState(isLoading) {
+            if (isLoading) {
+                this.elements.btnText.textContent = 'Sending...';
+                this.elements.btnLoader.style.display = 'block';
+                this.elements.submitBtn.disabled = true;
+            } else {
+                this.elements.btnText.textContent = 'Send Message';
+                this.elements.btnLoader.style.display = 'none';
+                this.elements.submitBtn.disabled = false;
+            }
+        },
+
+        showStatus(message, type) {
+            this.elements.formStatus.textContent = message;
+            this.elements.formStatus.className = `form-status ${type}`;
+            this.elements.formStatus.style.display = 'block';
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                this.elements.formStatus.style.display = 'none';
+            }, 5000);
+        }
+    };
+
+    // ======================
+    // Initialize All Components
+    // ======================
+
+    // Initialize Admin Authentication
+    AdminAuth.init();
+
+    // Initialize Posts Manager
+    PostsManager.init();
+
+    // Initialize Contact Form
+    ContactForm.init();
+
+    // ======================
+    // Additional Utilities
+    // ======================
+
+    // Lazy load images
+    const lazyLoadImages = () => {
+        const lazyImages = document.querySelectorAll('img[loading="lazy"]');
+        
+        if ('IntersectionObserver' in window) {
+            const imageObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        img.src = img.dataset.src || img.src;
+                        img.removeAttribute('loading');
+                        imageObserver.unobserve(img);
+                    }
+                });
+            });
+
+            lazyImages.forEach(img => {
+                if (img.complete) return;
+                imageObserver.observe(img);
+            });
+        }
+    };
+
+    // Initialize lazy loading
+    document.addEventListener('DOMContentLoaded', lazyLoadImages);
+    window.addEventListener('load', lazyLoadImages);
+
+    // Add animation on scroll
+    const animateOnScroll = () => {
+        const elements = document.querySelectorAll('.animate-on-scroll');
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animated');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, {
+            threshold: 0.1
+        });
+
+        elements.forEach(element => {
+            observer.observe(element);
+        });
+    };
+
+    // Initialize animations
+    document.addEventListener('DOMContentLoaded', animateOnScroll);
+    window.addEventListener('load', animateOnScroll);
+
+    // Print resume functionality
+    const printResumeBtn = document.getElementById('print-resume');
+    if (printResumeBtn) {
+        printResumeBtn.addEventListener('click', () => {
+            const pdfFrame = document.getElementById('resume-pdf');
+            if (pdfFrame && pdfFrame.contentWindow) {
+                pdfFrame.contentWindow.print();
+            } else {
+                window.open('docs/your-resume.pdf', '_blank');
+            }
+        });
+    }
+});

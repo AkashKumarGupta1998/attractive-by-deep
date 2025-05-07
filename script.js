@@ -1,24 +1,20 @@
-<!-- Add this in the <body> before closing tag -->
-<button id="theme-toggle" class="btn-secondary" style="position: fixed; top: 1rem; right: 1rem; z-index: 1000;">
-  Toggle Theme
-</button>
+// script.js
 
-<script>
-  const toggleBtn = document.getElementById('theme-toggle');
-  const body = document.body;
+document.addEventListener('DOMContentLoaded', () => {
+  const toggle = document.querySelector('.menu-toggle');
+  const navLinks = document.querySelector('.nav-links');
 
-  // Check local storage for theme preference
-  if (localStorage.getItem('theme') === 'dark') {
-    body.classList.add('dark-mode');
-  }
-
-  toggleBtn.addEventListener('click', () => {
-    body.classList.toggle('dark-mode');
-    // Save preference
-    if (body.classList.contains('dark-mode')) {
-      localStorage.setItem('theme', 'dark');
-    } else {
-      localStorage.setItem('theme', 'light');
-    }
+  toggle.addEventListener('click', () => {
+    navLinks.classList.toggle('active');
   });
-</script>
+
+  // Smooth scrolling
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+      e.preventDefault();
+      document.querySelector(this.getAttribute('href')).scrollIntoView({
+        behavior: 'smooth'
+      });
+    });
+  });
+});
